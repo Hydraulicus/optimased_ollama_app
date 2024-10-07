@@ -8,6 +8,7 @@ from langchain_community.document_loaders import PDFPlumberLoader
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 from langchain.prompts import PromptTemplate
+from utils.caching import cache_retrieval_chain
 
 app = Flask(__name__)
 
@@ -42,6 +43,8 @@ raw_prompt = PromptTemplate.from_template(
 # """
 # )
 
+
+
 @app.route("/ai", methods=["POST"])
 def aiPost():
     print("Post /ai called")
@@ -68,9 +71,11 @@ def askPDFPost():
 
     print(f"query: {query}")
 
+    # TODO try to cache it too
     print("Loading vector store")
     vector_store = Chroma(persist_directory=folder_path, embedding_function=embedding)
 
+    # TODO try to cache it too
     print("Creating chaine")
     retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
@@ -80,8 +85,10 @@ def askPDFPost():
         },
     )
 
+    # TODO try to cache it too
     document_chaine = create_stuff_documents_chain(cached_llm, raw_prompt)
-    chaine = create_retrieval_chain(retriever, document_chaine)
+    # chaine = create_retrieval_chain(retriever, document_chaine)
+    chaine = cache_retrieval_chain(retriever, document_chaine)
 
     result = chaine.invoke({"input": query})
 
